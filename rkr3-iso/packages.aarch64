@@ -44,6 +44,9 @@ bredos-mirrorlist
 bredos-nohang
 bredos-news
 bredos-sysreport
+bredos-govctl
+bredos-tools
+bredos-sysconfig
 dosfstools
 e2fsprogs
 librewolf-bin

@@ -59,6 +59,9 @@ fastfetch
 bredos-nohang
 bredos-news
 bredos-sysreport
+bredos-govctl
+bredos-tools
+bredos-sysconfig
 
 # ===
 # EFI
