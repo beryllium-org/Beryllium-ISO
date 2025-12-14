@@ -106,9 +106,9 @@ pv
 # --------------
 mesa
 mesa-utils
-# lib32-mesa
-mesa-vdpau
-# lib32-mesa-vdpau
+vulkan-radeon
+vulkan-mesa-layers
+vulkan-tools
 
 # --------------
 # Graphics - CIX
