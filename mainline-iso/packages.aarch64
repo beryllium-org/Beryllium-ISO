@@ -5,6 +5,7 @@
 base
 base-devel
 yay
+iptables-nft
 networkmanager
 network-manager-applet
 nano
@@ -33,8 +34,8 @@ xorg-server
 bred-os-release
 parted
 gvfs
+btop
 pipewire-pulse
-#pipewire-media-session
 pipewire-alsa
 pipewire-jack
 bredos-keyring
@@ -44,6 +45,8 @@ bredos-mirrorlist
 bredos-nohang
 bredos-news
 bredos-sysreport
+bredos-sysconfig
+bredos-govctl
 dosfstools
 e2fsprogs
 librewolf-bin
