@@ -69,6 +69,7 @@ fastfetch
 gnu-netcat
 bakery
 bakery-gui
+bakery-tui
 
 # ===
 # GUI
