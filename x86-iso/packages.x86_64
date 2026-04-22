@@ -54,6 +54,7 @@ lshw
 expect
 inxi
 fastfetch
+nbd
 
 # ======
 # BAKERY
