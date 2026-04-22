@@ -1,150 +1,219 @@
-name: Build Isos
+name: Build ISOs
 
 on:
   workflow_dispatch:
+    inputs:
+      build_arm:
+        description: "Build ARM ISOs"
+        required: true
+        default: true
+        type: boolean
+      build_x86:
+        description: "Build x86_64 ISOs"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
+  prepare-release:
+    if: ${{ inputs.build_arm == true || inputs.build_x86 == true }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag_name }}
+
+    steps:
+      - name: Set current date as tag name
+        id: tag
+        run: echo "tag_name=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG_NAME: ${{ steps.tag.outputs.tag_name }}
+          BUILD_ARM: ${{ inputs.build_arm }}
+          BUILD_X86: ${{ inputs.build_x86 }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "GitHub CLI (gh) is required but not available."
+            exit 1
+          fi
+
+          if [[ "$BUILD_ARM" == "true" && "$BUILD_X86" == "true" ]]; then
+            RELEASE_TITLE="[$TAG_NAME] Beryllium OS Rolling ISO builds"
+          elif [[ "$BUILD_ARM" == "true" ]]; then
+            RELEASE_TITLE="[$TAG_NAME] Beryllium OS Rolling ISO builds (ARM)"
+          else
+            RELEASE_TITLE="[$TAG_NAME] Beryllium OS Rolling ISO builds (x86_64)"
+          fi
+
+          RELEASE_NOTES=$'These are Beryllium OS automated ISO builds.\nThis release text may be updated later on by one or more of the team members.\n\nThese images may be more conveniently downloaded from https://beryllium.gr/'
+
+          if ! gh release view "$TAG_NAME" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" \
+              --repo "$REPO" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES" \
+              --draft \
+              --prerelease
+          else
+            gh release edit "$TAG_NAME" \
+              --repo "$REPO" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES" \
+              --draft \
+              --prerelease
+          fi
+
   build-arm:
+    if: ${{ inputs.build_arm == true }}
+    needs: [prepare-release]
     runs-on: ubuntu-24.04-arm
     container:
-      image: bredos/bredos:latest
+      image: berylliumorg/os:latest
       ports:
         - 80
-      options:  --privileged 
+      options: --privileged --cap-add=MKNOD --device=/dev/loop-control:/dev/loop-control --device=/dev/loop0:/dev/loop0 --cap-add SYS_ADMIN
 
     strategy:
       fail-fast: false
       matrix:
         iso: [mainline-iso, orion-iso]
-    
+
     steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-          with:
-            path: iso
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          path: iso
 
-        - name: Install dependencies
-          run: |
-            init-docker
-            sudo pacman -Sy --noconfirm --needed \
-            arch-install-scripts bash dosfstools e2fsprogs erofs-utils libarchive libisoburn mtools squashfs-tools grub openssh
+      - name: Install dependencies
+        run: |
+          init-docker
+          sudo pacman -Sy --noconfirm --needed \
+            arch-install-scripts bash dosfstools e2fsprogs erofs-utils libarchive libisoburn mtools squashfs-tools grub openssh github-cli
 
-        - name: Build ISO
-          run: |
+      - name: Build ISO
+        run: |
+          max_attempts=10
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Build attempt $attempt/$max_attempts for ${{ matrix.iso }}"
             sudo umount -R ./work/aarch64/* || true
             sudo rm -rf /var/lib/pacman/db.lck ./out ./work
-            sudo ./iso/mkarchiso -v -w ./work -o ./out ./iso/${{ matrix.iso }}
 
-        - name: Send image to release job
-          run: |
-            echo "$SSH_KEY" > /tmp/deploy_key
-            chmod 600 /tmp/deploy_key
-            /usr/bin/scp -i /tmp/deploy_key -o StrictHostKeyChecking=no out/*.iso "$RELEASE_VM:/images/"
-          env:
-            SSH_KEY: ${{ secrets.SSH_KEY }}
-            RELEASE_VM: ${{ secrets.RELEASE_VM }}
+            if sudo ./iso/mkarchiso -v -w ./work -o ./out ./iso/${{ matrix.iso }}; then
+              break
+            fi
 
-        - name: Cleanup
-          if: always()
-          run: |
-            sudo umount -R ./work/aarch64/* || true
-            sudo rm -rf ./work ./out
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Build failed after $max_attempts attempts"
+              exit 1
+            fi
+
+            attempt=$((attempt + 1))
+            sleep 20
+          done
+
+      - name: Upload ISO to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.prepare-release.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t ISOS < <(find ./out -maxdepth 1 -type f -name '*.iso' | sort)
+          if [ "${#ISOS[@]}" -eq 0 ]; then
+            echo "No ISOs were built; nothing to upload."
+            exit 1
+          fi
+
+          gh release upload "$TAG_NAME" "${ISOS[@]}" --clobber --repo "$REPO"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo umount -R ./work/aarch64/* || true
+          sudo rm -rf ./work ./out
 
   build-x86:
+    if: ${{ inputs.build_x86 == true }}
+    needs: [prepare-release]
     runs-on: ubuntu-latest
     container:
-      image: bredos/bredos:latest
+      image: berylliumorg/os:latest
       ports:
         - 80
-      options: --privileged
+      options: --privileged --cap-add=MKNOD --device=/dev/loop-control:/dev/loop-control --device=/dev/loop0:/dev/loop0 --cap-add SYS_ADMIN
 
     strategy:
       fail-fast: false
       matrix:
         iso: [x86-iso]
-    
-    steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-          with:
-            path: iso
-
-        - name: Install dependencies
-          run: |
-            init-docker
-            sudo pacman -Sy --noconfirm --needed \
-            arch-install-scripts bash dosfstools e2fsprogs erofs-utils libarchive libisoburn mtools squashfs-tools grub openssh
-
-        - name: Build ISO
-          run: |
-            sudo ./iso/mkarchiso -v -w ./work -o ./out ./iso/${{ matrix.iso }}
-
-        - name: Send image to release job
-          run: |
-            echo "$SSH_KEY" > /tmp/deploy_key
-            chmod 600 /tmp/deploy_key
-            /usr/bin/scp -i /tmp/deploy_key -o StrictHostKeyChecking=no out/*.iso "$RELEASE_VM:/images/"
-          env:
-            SSH_KEY: ${{ secrets.SSH_KEY }}
-            RELEASE_VM: ${{ secrets.RELEASE_VM }}
-        
-
-        - name: Cleanup
-          if: always()
-          run: |
-            sudo rm -rf ./work ./out
-  release:
-    if: always()
-    needs: [build-arm, build-x86]
-    runs-on: [self-hosted, ARM64, BredOS, emag]
 
     steps:
-      - name: Set current date as tag name
-        id: set_tag_name
-        run: echo "TAG_NAME=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          path: iso
 
-      - name: Create Release and Upload Each iso Individually
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          TAG_NAME: ${{ env.TAG_NAME }}
+      - name: Install dependencies
         run: |
-          # Initialize the release body with MD5 checksums
-          RELEASE_BODY="MD5 Checksums:\n"
+          init-docker
+          sudo pacman -Sy --noconfirm --needed \
+            arch-install-scripts bash dosfstools e2fsprogs erofs-utils libarchive libisoburn mtools squashfs-tools grub openssh github-cli
 
-          # Calculate MD5 for each iso and add it to RELEASE_BODY
-          for img in /images/*.iso; do
-            FILENAME=$(basename "$img")
-            MD5SUM=$(md5sum "$img" | awk '{print $1}')
-            RELEASE_BODY+="$FILENAME: $MD5SUM\n"
+      - name: Build ISO
+        run: |
+          max_attempts=10
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Build attempt $attempt/$max_attempts for ${{ matrix.iso }}"
+            sudo umount -R ./work/x86_64/* || true
+            sudo rm -rf /var/lib/pacman/db.lck ./out ./work
+
+            if sudo ./iso/mkarchiso -v -w ./work -o ./out ./iso/${{ matrix.iso }}; then
+              break
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Build failed after $max_attempts attempts"
+              exit 1
+            fi
+
+            attempt=$((attempt + 1))
+            sleep 20
           done
 
-          # Create a draft release with the MD5 checksums in the body
-          RELEASE_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"tag_name\": \"$TAG_NAME\", \"name\": \"$TAG_NAME\", \"body\": \"$RELEASE_BODY\", \"draft\": false, \"prerelease\": true}" \
-            "https://api.github.com/repos/$REPO/releases")
+      - name: Upload ISO to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.prepare-release.outputs.tag_name }}
+        run: |
+          set -euo pipefail
 
-          RELEASE_ID=$(echo $RELEASE_RESPONSE | jq -r '.id')
-
-          if [ "$RELEASE_ID" == "null" ]; then
-            echo "Failed to create a release. Response: $RELEASE_RESPONSE"
+          mapfile -t ISOS < <(find ./out -maxdepth 1 -type f -name '*.iso' | sort)
+          if [ "${#ISOS[@]}" -eq 0 ]; then
+            echo "No ISOs were built; nothing to upload."
             exit 1
           fi
 
-          # Upload each image file to the release
-          for img in /images/*.iso; do
-            FILENAME=$(basename "$img")
-            echo "Uploading $FILENAME to release $RELEASE_ID"
-            curl -s \
-              -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/octet-stream" \
-              -T "$img" \
-              "https://uploads.github.com/repos/$REPO/releases/$RELEASE_ID/assets?name=$FILENAME"
-          done
+          gh release upload "$TAG_NAME" "${ISOS[@]}" --clobber --repo "$REPO"
 
-      - name: Clean up
+      - name: Cleanup
         if: always()
         run: |
-          rm -rf ./out/ /images/*.iso
+          sudo umount -R ./work/x86_64/* || true
+          sudo rm -rf ./work ./out
