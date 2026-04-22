@@ -1,6 +1,6 @@
-# BredOS ISO
+# Beryllium OS ISO
 
-This repo contains the necessary files for generating BredOS universal ISOs.<br /><br />
+This repo contains the necessary files for generating universal Beryllium OS ISOs.<br /><br />
 
 ## Dependencies
 
@@ -24,10 +24,5 @@ For the mainline kernel instead run:<br />
 and run:<br />
 `systemctl restart systemd-binfmt`<br />
 <br />
-Also make sure your system has the BredOS gpg keys and mirrorlist.<br />
-<br />
-```
-sudo pacman-key --recv-keys 77193F152BDBE6A6 BF0740F967BA439D DAEAD1E6D799C638
-sudo pacman-key --lsign-key 77193F152BDBE6A6 BF0740F967BA439D DAEAD1E6D799C638
-echo -e '# --> BredOS Mirrorlist <-- #\n\n# BredOS Main mirror\nServer = https://repo.bredos.org/repo/$repo/$arch\n' |sudo tee /etc/pacman.d/bredos-mirrorlist
-```
+Also make sure your system has the Beryllium OS gpg keys and mirrorlist.<br />
+`curl -fsSL https://repo.beryllium.gr/repo/mig.sh | sudo bash`
