@@ -74,7 +74,7 @@ mkinitcpio-nfs-utils
 # BAKERY
 # ======
 
-gnu-netcat
+openbsd-netcat
 bakery
 bakery-gui
 

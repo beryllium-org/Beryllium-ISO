@@ -22,7 +22,6 @@ polkit
 bluez-utils
 #rock5b-post-install
 #f2fs-tools
-mesa
 libdrm
 bred-skel-default
 uboot-tools
@@ -65,7 +64,7 @@ fastfetch
 # BAKERY
 # ======
 
-gnu-netcat
+openbsd-netcat
 bakery
 bakery-gui
 bakery-tui
@@ -98,11 +97,9 @@ pv
 libbsd
 libmd
 
-# --------------
-# Graphics - AMD
-# --------------
+# --------
+# Graphics
+# --------
+
 mesa
 mesa-utils
-# lib32-mesa
-mesa-vdpau
-# lib32-mesa-vdpau
