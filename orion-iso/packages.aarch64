@@ -82,6 +82,15 @@ grub
 mkinitcpio-archiso
 mkinitcpio-nfs-utils
 
+# =============================
+# DRACUT / PLYMOUTH / SNAPSHOTS
+# =============================
+# mkinitcpio* kept for ISO live boot (archiso machinery).
+# Bakery installer swaps the target system to dracut on install.
+dracut
+plymouth
+snapper
+
 # ======
 # BAKERY
 # ======
