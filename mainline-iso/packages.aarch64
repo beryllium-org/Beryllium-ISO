@@ -121,3 +121,5 @@ gparted
 
 mesa
 mesa-utils
+firewall-applet
+firewalld

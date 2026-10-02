@@ -132,3 +132,5 @@ mesa-utils
 # -----------------
 nvidia-open
 nvidia-utils
+firewall-applet
+firewalld

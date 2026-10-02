@@ -140,3 +140,5 @@ libglvnd-cix
 orion-o6-post-install
 r8126-dkms
 xorg-xwayland-cix
+firewall-applet
+firewalld
