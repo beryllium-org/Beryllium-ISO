@@ -107,7 +107,6 @@ plymouth
 snapper
 
 linux
-linux-headers
 pv
 libbsd
 libmd
