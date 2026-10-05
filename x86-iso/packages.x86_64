@@ -43,9 +43,9 @@ beryllium-sysreport
 beryllium-govctl
 beryllium-tools
 beryllium-sysconfig
+librewolf-bin
 dosfstools
 e2fsprogs
-firefox
 neofetch
 blueman
 cpupower
@@ -54,6 +54,8 @@ lshw
 expect
 fastfetch
 nbd
+firewall-applet
+firewalld
 
 # ---------
 # Utilities
@@ -84,12 +86,10 @@ lightdm
 xorg
 hicolor-icon-theme
 lightdm-slick-greeter
-noto-fonts
 gedit
 gnome-system-monitor
 mint-themes
 mint-y-icons
-# mintlocale
 engrampa
 gparted
 
@@ -132,5 +132,3 @@ mesa-utils
 # -----------------
 nvidia-open
 nvidia-utils
-firewall-applet
-firewalld
