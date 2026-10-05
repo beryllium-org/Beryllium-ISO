@@ -43,7 +43,7 @@ beryllium-sysreport
 beryllium-govctl
 beryllium-tools
 beryllium-sysconfig
-librewolf-bin
+librewolf
 dosfstools
 e2fsprogs
 neofetch
