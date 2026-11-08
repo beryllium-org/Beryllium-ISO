@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        iso: [mainline-iso, orion-iso]
+        iso: [mainline-iso]
 
     steps:
       - name: Checkout
