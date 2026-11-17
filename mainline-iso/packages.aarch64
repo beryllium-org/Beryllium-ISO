@@ -48,7 +48,6 @@ beryllium-sysconfig
 dosfstools
 e2fsprogs
 librewolf-bin
-neofetch
 mali-G610-firmware-rkr4
 blueman
 cpupower
@@ -114,13 +113,11 @@ inxi
 mesa-utils
 vulkan-tools
 vulkan-panfrost
-gparted
 
 # --------
 # Graphics
 # --------
 
 mesa
-mesa-utils
 firewall-applet
 firewalld

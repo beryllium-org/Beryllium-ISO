@@ -46,7 +46,6 @@ beryllium-sysconfig
 librewolf
 dosfstools
 e2fsprogs
-neofetch
 blueman
 cpupower
 less
@@ -91,7 +90,6 @@ gnome-system-monitor
 mint-themes
 mint-y-icons
 engrampa
-gparted
 
 grub
 mkinitcpio-archiso
@@ -113,7 +111,6 @@ libmd
 
 os-prober
 
-pv
 spice-vdagent
 qemu-guest-agent
 
@@ -124,10 +121,4 @@ intel-ucode
 # Graphics - AMD
 # --------------
 mesa
-mesa-utils
 
-# -----------------
-# Graphics - NVIDIA
-# -----------------
-nvidia-open
-nvidia-utils
